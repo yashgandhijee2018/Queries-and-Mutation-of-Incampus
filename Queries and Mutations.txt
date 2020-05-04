@@ -37,3 +37,15 @@ mutation MyMutation {
     }
   }
 }
+
+//INSERT EVENT USER
+mutation MyMutation {
+  insert_Events(objects: {name: "New Event 2", date: "04/05/2020", venue: "DTU", description: "Description", category: "Arts", registration_fees: "0.0", venue_type: "offline", created_by: "105", age_limit: 10, community_id: "200", cover_pic: "", time: "1:40 am", additional_notes: ""}) {
+    affected_rows
+    returning {
+      event_id
+      created_at
+      community_id
+    }
+  }
+}
