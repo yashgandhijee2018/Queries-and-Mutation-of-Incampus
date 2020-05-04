@@ -1,0 +1,39 @@
+//INFO ACTIVITY
+mutation MyMutation {
+  insert_User(on_conflict: {constraint: User_pkey, update_columns: age}, objects: [{age: 10, course: "qwerty", education: "asd", email: "", gender: "", name: "bin", password: "", pic_url: "", role: "", university: "zxc"}]) {
+    affected_rows
+    returning {
+      user_id
+    }
+  }
+}
+
+
+//INSERT CATEGORY 
+mutation MyMutation {
+  insert_Category(objects: {name: "Arts"}) {
+    returning {
+      name
+    }
+  }
+}
+
+//COMMUNITY FOLLOWED BY A USER
+query MyQuery {
+  Community(where: {category: {_eq: "Arts"}}, order_by: {member_count: desc}) {
+    member_count
+    name
+    pic_url
+    community_id
+  }
+}
+
+//INSERT POST BY A USER
+mutation MyMutation {
+  insert_Posts(objects: [{name: "jm", created_by: "gh", pic_url: "r", community_id: "45", content: "th"}]) {
+    returning {
+      created_at
+      post_id
+    }
+  }
+}
