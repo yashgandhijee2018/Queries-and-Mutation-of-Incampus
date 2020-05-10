@@ -18,7 +18,7 @@ mutation MyMutation {
   }
 }
 
-//COMMUNITY FOLLOWED BY A USER
+//QUERY COMMUNITY FOLLOWED BY A USER
 query MyQuery {
   Community(where: {category: {_eq: "Arts"}}, order_by: {member_count: desc}) {
     member_count
@@ -49,3 +49,43 @@ mutation MyMutation {
     }
   }
 }
+
+//QUERY COMMUNITY TO MEMBER RELATION
+query MyQuery {
+  User(where: {user_id: {_eq: "978"}}) {
+    user_to_communities(where: {isAdmin: {_eq: true}}) {
+      isAdmin
+      isMod
+      user_id
+      upvotes
+      id
+      community_id
+      community_to_members_relationship {
+        category
+        description
+        community_id
+        member_count
+        isOpen
+        name
+        pic_url
+      }
+    }
+  }
+}
+
+//QUERY FETCHING ONLY THE NAMES OF THE USER COMMUNITY TO MEMBER RELATION
+query MyQuery {
+  User(where: {user_id: {_eq: "978"}}) {
+    user_to_communities(where: {isAdmin: {_eq: true}}) {
+      community_to_members_relationship {
+        name
+      }
+    }
+  }
+}
+
+//__________________________________________________________________________________________________________________________________//
+  OTHER ENDPOINTS FOR RETROFIT
+
+POST : api/v1/username -  to add Username to user
+POST: api/v1/username/search - To search the given username
