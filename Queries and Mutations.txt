@@ -89,3 +89,25 @@ query MyQuery {
 
 POST : api/v1/username -  to add Username to user
 POST: api/v1/username/search - To search the given username
+
+//__________________________________________________________________________________________________________________________________//
+SHARED PREFERENCE DATA
+1)Signup Activity Store: 
+  user_email
+  user_username
+  user_id
+  JWT
+  user_phone (NULL)
+  user_info_present (false)
+
+2)OTP Activity Store:
+  user_phone (phoneno)
+
+3)Info Activity Store:
+  user_info_present (true)
+  
+4)Home Activity Store:
+  if(logout)
+    login (false)
+
+  
