@@ -1,113 +1,1557 @@
-//INFO ACTIVITY
-mutation MyMutation {
-  insert_User(on_conflict: {constraint: User_pkey, update_columns: age}, objects: [{age: 10, course: "qwerty", education: "asd", email: "", gender: "", name: "bin", password: "", pic_url: "", role: "", university: "zxc"}]) {
-    affected_rows
-    returning {
+ 
+# ................   1   ......................
+# this is the query to show posts in the home feed.
+# it has posts of the communities and people followed by the user
+# and user's own posts as well 
+# and to see if the user has already liked the post or not
+
+query getHomePosts {
+  Posts(limit: 10, offset: 10, where: {_or: [{post_to_community_members: {user_id: {_eq: "203"}}}, {post_to_followers: {userid_from: {_eq: "203"}}}, {created_by: {_eq: "203"}}]}, order_by: {created_at: desc}) {
+    community_id
+    content
+    created_at
+    created_by
+    name
+    pic_url
+    post_id
+    upvotes
+    no_of_comments
+    post_community {
+      name
+    }
+    post_to_user {
+      pic_url
+      user_id
+      name
+    }
+    postUpvotesByPostId_aggregate {
+      aggregate {
+        count
+      }
+    }
+    postUpvotesByPostId(where: {user_id: {_eq: "203"}}) {
       user_id
     }
   }
 }
 
 
-//INSERT CATEGORY 
-mutation MyMutation {
-  insert_Category(objects: {name: "Arts"}) {
+
+New Query :
+
+query getHomePosts {
+  Posts(where: {_or: [{post_to_community_members: {user_id: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}}, {post_to_followers: {userid_from: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}}, {created_by: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}]}, order_by: {created_at: desc}) {
+    id
+    community_id
+    content
+    created_at
+    created_by
+    title
+    pic_ur
+    video_url
+    updated_at
+
+    Community {
+      name
+    }
+
+    Post_Upvotes_aggregate{
+      aggregate {
+        count(columns: id)
+      }
+    }
+
+    Post_Upvotes(where: {user_id: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}) {
+      user_id
+    }
+
+    User {
+      username
+      id
+      profile_pic_url
+    }
+  }
+}
+
+Changes :
+
+post_id -> id
+upvotes-> REMOVED
+no_of_comments -> REMOVED
+post_to_community -> Community
+postUpvotesByPostId_aggregate ->  Post_Upvotes_aggregate
+postUpvotesByPostId -> Post_Upvotes
+post_to_user-> User
+updated_at  -> Added
+
+
+
+# ................   2   ......................
+# this is the query to show events int the explore feed.
+# it has the events of the communities followed by the user.
+
+query getExploreEvents {
+  Events(limit: 10, offset: 0, where: {Event_to_community_members: {user_id: {_eq: "203"}}}, order_by: {created_at: desc}) {
+    name
+    event_id
+    time
+    registration_fees
+    venue
+    venue_type
+    description
+    date
+    created_by
+    created_at
+    cover_pic
+    community_id
+    category
+    age_limit
+    additional_notes
+    Event_to_community {
+      community_id
+      name
+      pic_url
+    }
+  }
+}
+
+
+
+
+
+
+# New-Query:
+
+
+query getExploreEvents {
+  Events(limit: 10, offset: 0, where: {Event_to_community_members: {user_id: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}}, order_by: {created_at: desc}) {
+    name
+    id
+    time
+    registration_fees
+    venue
+    venue_type
+    description
+    date
+    created_by
+    created_at
+    cover_pic_url
+    community_id
+    category_id
+    age_limit
+    additional_notes
+    is_open
+    updated_at
+    Community {
+      id
+      name
+      community_pic_url
+    }
+  }
+}
+
+
+Changes:
+
+event_id -> id
+category -> category_id
+is_open -> Added
+updated_at -> Added
+Event_to_community -> Community
+Event_to_community.pic_url -> Community.community_pic_url
+
+
+
+ 
+
+# ................   3   ......................
+# this is the mutation to like a post
+
+mutation insertPostUpvote {
+  insert_Post_Upvotes(objects: {post_id: "236", user_id: "203"}) {
+    affected_rows
+  }
+  update_Posts(where: {post_id: {_eq: "236"}}, _inc: {upvotes: "1"}) {
+    affected_rows
+  }
+}
+
+# New - Query 
+
+mutation insertPostUpvote {
+  insert_Post_Upvotes(objects: {post_id: "4", user_id: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}) {
+    affected_rows
+  }
+}
+
+
+Changes:
+update_Posts {_inc :{upvotes:”1”}}: column not exist
+
+
+
+# ................   4   ......................
+# this is the mutation to unlike a post
+
+mutation deletePostUpvote {
+  delete_Post_Upvotes(where: {post_id: {_eq: "236"}, _and: {user_id: {_eq: "203"}}}) {
+    affected_rows
+  }
+  update_Posts(where: {post_id: {_eq: "236"}}, _inc: {upvotes: "-1"}) {
+    affected_rows
+  }
+}
+
+#New-Query 
+
+mutation deletePostUpvote {
+  delete_Post_Upvotes(where: {post_id: {_eq:"4"}, user_id: {_eq: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}}) {
+    affected_rows
+  }
+}
+
+Changes
+update_Posts {_inc :{upvotes:”1”}} -> column not exist
+
+
+# ................   5   ......................
+# this is the query to show all comments on a post
+# and to see if the user has already liked the comment or not
+
+query getCommentsOnPost {
+  Comments(limit: 10, offset: 0, where: {post_id: {_eq: "236"}}, order_by: {timestamp: desc}) {
+    UserID {
+      user_id
+      name
+      pic_url
+    }
+    content
+    upvotes
+    user_id
+    id
+    timestamp
+    Comment_Upvotes(where: {user_id: {_eq: "203"}}) {
+      user_id
+    }
+    Comment_Upvotes_aggregate {
+      aggregate {
+        count
+      }
+    }
+  }
+}
+
+
+
+
+
+#New-Query :
+
+query getCommentsOnPost {
+  Comments(limit: 10, offset: 0, where: {post_id: {_eq: "236"}}, order_by: {created_at: desc}) {
+    User {
+      id
+      name
+      profile_pic_url
+    }
+    content
+    user_id
+    id
+    created_at
+    Comments_Upvotes(where: {user_id: {_eq: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}}) {
+      user_id
+    }
+    Comments_Upvotes_aggregate {
+      aggregate {
+        count
+      }
+    }
+  }
+}
+
+Changes:
+UserID->User
+UserID.user_id->User.id
+UserID.pic_url->User.profile_pic_url
+upvotes-> Removed
+Comment_Upvotes->Comments_Upvotes
+Comment_Upvotes_aggregate->Comments_Upvotes_aggregate
+
+
+
+# ................   6   ......................
+# this is the mutation to like a comment
+
+mutation insertCommentUpvote {
+  insert_Comment_Upvotes(objects: {comment_id: "358", user_id: "203"}) {
+    affected_rows
+  }
+  update_Comments(where: {id: {_eq: "358"}}, _inc: {upvotes: "1"}) {
+    affected_rows
+  }
+}
+
+
+#New - Query 
+
+mutation insertCommentUpvote {
+  insert_Comments_Upvotes(objects: {comment_id: "358", user_id: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}) {
+    affected_rows
+  }
+}
+
+Changes:
+ insert_Comment_Upvotes ->  insert_Comments_Upvotes
+update_Comments-> Not required
+
+
+# ................   7   ......................
+# this is the mutation to unlike a comment
+
+mutation deleteCommentUpvote {
+  delete_Comment_Upvotes(where: {comment_id: {_eq: "358"}, _and: {user_id: {_eq: "203"}}}) {
+    affected_rows
+  }
+  update_Comments(where: {id: {_eq: "358"}}, _inc: {upvotes: "-1"}) {
+    affected_rows
+  }
+}
+
+
+# New - Query
+
+mutation deleteCommentUpvote {
+  delete_Comments_Upvotes(where: {comment_id: {_eq: "1"}, _and: {user_id: {_eq: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}}}) {
+    affected_rows
+  }
+ }
+
+Changes:
+ delete_Comment_Upvotes ->  delete_Comments_Upvotes
+update_Comments-> Not required
+
+
+
+# ................   8   ......................
+# this is the query to get no of comments on a post
+
+query getCommentCount {
+  Comments_aggregate(where: {post_id: {_eq: "236"}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+
+# New - Query :
+
+query getCommentCount {
+  Comments_aggregate(where: {post_id: {_eq: "4"}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+
+No-Changes
+
+# ................   9   ......................
+# this is the mutation to add a comment to a post
+
+mutation insertComment {
+  insert_Comments(objects: {content: "HHHHHH", post_id: "236", upvotes: "0", user_id: "203"}) {
+    affected_rows
     returning {
+      id
+      content
+    }
+  }
+  update_Posts(where: {post_id: {_eq: "236"}}, _inc: {no_of_comments: "1"}) {
+    affected_rows
+    returning {
+      no_of_comments
+    }
+  }
+}
+
+
+#New - Query:
+
+mutation insertComment {
+  insert_Comments(objects: {content: "HHHHHH", post_id: "4", user_id: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}) {
+    affected_rows
+    returning {
+      id
+      content
+    }
+  }
+}
+
+Changes:
+
+update_Posts -> Not Required
+
+
+
+
+# ................   10   ......................
+# this is the query to see the communities followed by the user
+# so that user can post in those communities
+
+query getCommunitiesFollowedByUser {
+  Community_members(where: {user_id: {_eq: "203"}}) {
+    community_to_member_relationship {
+      name
+      community_id
+    }
+  }
+}
+
+
+
+
+
+#New - Query :
+
+query getCommunitiesFollowedByUser {
+  Community_members(where: {user_id: {_eq: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}}) {
+    Community{
+      name
+      id
+    }
+  }
+}
+
+
+Changes:
+community_to_member_relationship -> Community
+community_to_member_relationship.community_id -> Community.id
+
+
+
+# ................   11   ......................
+# this is the mutation to create a post by self
+
+mutation insertPostBySelf {
+  insert_Posts(objects: {content: "Content - HHHHAAAAHHHHHAAA", name: "Title - HIHIHIHIHIHI", created_by: "203"}) {
+    affected_rows
+    returning {
+      post_id
+      created_at
+    }
+  }
+}
+
+#New - Query :
+
+mutation insertPostBySelf {
+  insert_Posts(objects: {content: "Content - HHHHAAAAHHHHHAAA", title: "Title - HIHIHIHIHIHI", created_by: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}) {
+    affected_rows
+    returning {
+      id
+      created_at
+    }
+  }
+}
+
+
+Changes:
+post_id -> id
+
+# ................   12   ......................
+# this is the mutation to create a post in a community
+
+mutation insertPostInCommunity {
+  insert_Posts(objects: {content: "Content - HHHHAAAAHHHHHAAA", name: "Title - HIHIHIHIHIHI", created_by: "203", community_id: "200"}) {
+    affected_rows
+    returning {
+      post_id
+      created_at
+    }
+  }
+}
+
+
+#New - Query 
+
+mutation insertPostBySelf {
+  insert_Posts(objects: {content: "Content - HHHHAAAAHHHHHAAA", title: "Title - HIHIHIHIHIHI", created_by: "1c0084a0-690e-41b1-a762-97cbcdf600fe", community_id:"1"}) {
+    affected_rows
+    returning {
+      id
+      created_at
+    }
+  }
+}
+
+Changes:
+post_id -> id
+
+
+
+# ................   13   ......................
+# this is the query to check if user is eligible to create an event
+
+query getCommunitiesWhereUserIsAdmin {
+  Community_members(where: {user_id: {_eq: "203"}, _and: {isAdmin: {_eq: true}}}) {
+    community_to_member_relationship {
+      name
+      community_id
+    }
+  }
+}
+
+#New-Query :
+query getCommunitiesWhereUserIsAdmin {
+  Community_members(where: {user_id: {_eq: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}, _and: {isAdmin: {_eq: true}}}) {
+    Community {
+      name
+      id
+    }
+  }
+}
+
+Changes:
+community_to_member_relationship -> Community
+community_to_member_relationship.community_id -> Community.id
+
+
+
+# ................   14   ......................
+# this is the mutation to create an event in a community
+
+mutation insertEvent {
+  insert_Events(objects: {name: "Event Name", date: "10/06/2020", time: "12:00 pm", venue_type: "OFFLINE", venue: "JLN Stadium", description: "No Description", cover_pic: "https://incampus-testing.s3.ap-south-1.amazonaws.com/056b278b-a2dc-4f3b-a38d-34b590cc4b62orig.jpg", category: "ARTS", community_id: "200", created_by: "203", registration_fees: "200", additional_notes: "No Notes"}) {
+    affected_rows
+    returning {
+      event_id
+    }
+  }
+}
+
+
+
+
+#New - Query :
+
+mutation insertEvent {
+  insert_Events(objects: {name: "Event Name", date: "10/06/2020", time: "12:00 pm", venue_type: "OFFLINE", venue: "JLN Stadium", description: "No Description", cover_pic_url: "https://incampus-testing.s3.ap-south-1.amazonaws.com/056b278b-a2dc-4f3b-a38d-34b590cc4b62orig.jpg", category_id: "1", community_id: "1", created_by: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa", registration_fees: "200", additional_notes: "No Notes", age_limit: "18", is_open: true}) {
+    affected_rows
+    returning {
+      id
+    }
+  }
+}
+
+
+Changes : 
+is_open -> Added
+cover_pic -> cover_pic_url
+category -> category_id
+
+# ................   15   ......................
+# this is the mutation to create a community
+
+mutation insertCommunity {
+  insert_Community(objects: {category: "ARTS", isOpen: true, name: "Community Name", description: "Description", pic_url: "https://scontent.fdel18-1.fna.fbcdn.net/v/t1.0-9/15338717_1265849963472631_2615821993240483636_n.jpg?_nc_cat=105&_nc_sid=85a577&_nc_ohc=EeS2dL3NCOAAX827sXx&_nc_ht=scontent.fdel18-1.fna&oh=89dc423a641e01faba49c20da3ef0c47&oe=5EE209FF", member_count: 1, tag: “String Already Taken"}) {
+    affected_rows
+    returning {
+      community_id
+      member_count
+    }
+  }
+}
+
+#New - Query ( To insert the community and set the user as creator and admin in community_member table)
+
+mutation insertCommunity {
+  insert_Community(objects: {category_id: "1", isOpen: true, name: "Community Name", description: "Description", community_pic_url: "https://scontent.fdel18-1.fna.fbcdn.net/v/t1.0-9/15338717_1265849963472631_2615821993240483636_n.jpg?_nc_cat=105&_nc_sid=85a577&_nc_ohc=EeS2dL3NCOAAX827sXx&_nc_ht=scontent.fdel18-1.fna&oh=89dc423a641e01faba49c20da3ef0c47&oe=5EE209FF", community_identifier: "String Already Taken 2", Community_members: {data: {user_id: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa", isAdmin: true, isCreator: true, isMod: false}}, guidelines: "Guidelines"}) {
+    affected_rows
+    returning {
+      id
+    }
+  }
+}
+
+
+Changes:
+Totally new query please read thoroughly before adding.
+
+
+# ................   16   ......................
+# this is the mutation to insert a community member
+
+mutation insert_Community_Member {
+  insert_Community_members(objects: {community_id: "200", isAdmin: true, isMod: false, user_id: "203"}) {
+    affected_rows
+    returning {
+      id
+    }
+  }
+}
+
+# New - Query :
+
+mutation insert_Community_Member {
+  insert_Community_members(objects: {community_id: "1", isAdmin: false, isMod: false, user_id: "1c0084a0-690e-41b1-a762-97cbcdf600fe"}) {
+    affected_rows
+    returning {
+      id
+    }
+  }
+}
+
+No-Changes
+
+
+#............. 17 ……………..
+# this is the mutation for deleting follow as the community member
+
+mutation deleteCommunityMember {
+  delete_Community_members(where: {community_id: {_eq: ""}, user_id: {_eq: ""}}) {
+    affected_rows
+  }
+}
+
+#  New - Query :
+
+mutation deleteCommunityMember {
+  delete_Community_members(where: {community_id: {_eq: ""}, user_id: {_eq: ""}}) {
+    affected_rows
+  }
+}
+
+No-Changes
+
+
+#................18……………..
+# this is the mutation for adding the community members
+
+mutation insertCommunityMember {
+  insert_Community_members(objects: {community_id: "", user_id: "", isAdmin: false, isMod: false}) {
+    affected_rows
+  }
+}
+
+# New - Query 
+
+mutation insertCommunityMember {
+  insert_Community_members(objects: {community_id: "", user_id: "", isAdmin: false, isMod: false}) {
+    affected_rows
+  }
+}
+No Changes
+
+
+
+#...........19…………....
+# mutation for getting community activity complete details (get PIc , Name) ,(members Count) , (post number) , (community total likes) , (check for member already following community or not)
+
+
+query CommunityProfileDetails {
+  Community(where: {community_id: {_eq: ""}}) {
+    name
+    pic_url
+  }
+  Community_members_aggregate(where: {community_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+  Posts_aggregate(where: {community_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+  total_community_upvotes_aggregate(args: {comm_id: ""}) {
+    aggregate {
+      count
+    }
+  }
+  Community_members(where: {_and: {user_id: {_eq: ""}}, community_id: {_eq: ""}}) {
+    isAdmin
+  }
+}
+
+#New - Query :
+
+query CommunityProfileDetails {
+  Community(where: {id: {_eq: ""}}) {
+    name
+    community_pic_url
+  }
+  Community_members_aggregate(where: {community_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+  Posts_aggregate(where: {community_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+  total_community_upvotes_aggregate(args: {communityid: ""}) {
+    aggregate {
+      count
+    }
+  }
+  Community_members(where: {_and: {user_id: {_eq: ""}}, community_id: {_eq: ""}}) {
+    isAdmin
+  }
+}
+
+Changes:
+Community.community_pic -> Community.community_pic_url
+
+
+
+
+
+# .............20...............
+#Insert BlackList Token
+
+mutation AddBlackListToken {
+  insert_BlacklistToken(objects: {token: ""}) {
+    affected_rows
+  }
+}
+
+
+Not Required
+
+#.........21..............
+#Check Previous Data in Info
+query CheckPreviousDataInInfo {
+  User(where: {user_id: {_eq: ""}}) {
+    name
+    date_of_birth
+    university
+    course
+    gender
+    education
+  }
+}
+
+#New - Query :
+
+query CheckPreviousDataInInfo {
+  User_About(where: {user_id: {_eq: ""}}) {
+    date_of_birth
+    college_id
+    courses_id
+    branch_id
+  }
+  User(where:{id:{_eq:""}}){
+    id
+    name
+    gender
+  }
+}
+
+Changes:
+Totally new query please read thoroughly before adding.
+
+
+
+
+#................22..............
+#update user in info activity
+
+mutation updateUser {
+  update_User(where: {user_id: {_eq: ""}}, _set: {date_of_birth: "", name: "", gender: "", education: "", course: "", university: ""}) {
+    affected_rows
+  }
+}
+
+# New - Query :
+mutation updateUser {
+  update_User(where: {id: {_eq: ""}}, _set: {name: "", gender: ""}) {
+    affected_rows
+  }
+  update_User_About(where: {user_id: {_eq: ""}}, _set: {about: "", branch_id: "", college_id: "", courses_id: "", created_at: "", date_of_birth: "", year_of_joining: ""}) {
+    affected_rows
+  }
+}
+
+Changes:
+Totally new query please read thoroughly before adding.
+
+
+
+#............23..............
+#Manage Events Activity
+
+query ManageEvents {
+  Community_members(where: {user_id: {_eq: ""}, _and: {isAdmin: {_eq: true}}}) {
+    community_to_member_relationship {
+      community_id
       name
     }
   }
 }
 
-//QUERY COMMUNITY FOLLOWED BY A USER
-query MyQuery {
-  Community(where: {category: {_eq: "Arts"}}, order_by: {member_count: desc}) {
-    member_count
+
+# New - Query :
+query ManageEvents {
+  Community_members(where: {user_id: {_eq: ""}, _and: {isAdmin: {_eq: true}}}) {
+    Community {
+      id
+      name
+    }
+  }
+}
+
+
+Changes:
+community_to_member_relationship -> Community
+community_to_member_relationship.community_id -> Community.id
+
+
+
+
+#..............24..............
+#Check whether the user is following the other user
+
+query CheckFollowinProfile {
+  UserFollow(where: {_and: {userid_from: {_eq: ""}}, userid_to: {_eq: ""}}) {
+    id
+  }
+}
+
+# New - Query :
+
+query CheckFollowinProfile {
+  User_Follow(where: {_and: {userid_from: {_eq: ""}}, userid_to: {_eq: ""}}) {
+    id
+  }
+}
+
+Changes :
+
+UserFollow -> User_Follow
+
+
+#.............25...............
+#Add User follow
+
+mutation addUserFollow {
+  insert_UserFollow(objects: {userid_from: "", userid_to: ""}) {
+    affected_rows
+  }
+}
+
+# New - query :
+
+mutation addUserFollow {
+  insert_User_Follow(objects: {userid_from: "", userid_to: ""}) {
+    affected_rows
+  }
+}
+
+Changes:
+insert_UserFollow ->  insert_User_Follow
+
+
+#............26..............
+# delete the follow from user to user
+
+mutation deleteUserFollow {
+  delete_UserFollow(where: {_and: {userid_from: {_eq: ""}}, userid_to: {_eq: ""}}) {
+    affected_rows
+  }
+}
+
+# New - Query :
+
+mutation deleteUserFollow {
+  delete_User_Follow(where: {_and: {userid_from: {_eq: ""}}, userid_to: {_eq: ""}}) {
+    affected_rows
+  }
+}
+
+Changes:
+delete_UserFollow ->  delete_User_Follow
+
+#................27……………
+#NUmbers of Community Members And Number of user following (Profile Activity)
+
+query community_number_followers_number {
+  Community_members_aggregate(where: {user_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+  UserFollow_aggregate(where: {userid_to: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+#New - Query :
+
+query community_number_followers_number {
+  Community_members_aggregate(where: {user_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+  User_Follow_aggregate(where: {userid_to: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+Changes:
+UserFollow_aggregate -> User_Follow_aggregate
+
+#.....................28……………………..
+#NUmber of following (Profile Activity)
+
+query following_number{
+  UserFollow_aggregate(where: {userid_from: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+# New - Query :
+
+query following_number{
+  User_Follow_aggregate(where: {userid_from: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+Changes:
+UserFollow_aggregate -> User_Follow_aggregate
+
+
+
+#..............29………….
+#Profile Details
+
+query profile_show {
+  User(where: {user_id: {_eq: ""}}) {
     name
     pic_url
+    university
+  }
+}
+
+
+# New - query :
+query profile_show {
+  User(where: {id: {_eq: ""}}) {
+    name
+    profile_pic_url
+  }
+  
+  User_About(where:{id:{_eq:""}}){
+    id
+    college_id
+  }
+}
+
+
+Changes:
+Totally new query please read thoroughly before adding.
+
+
+#................30…………
+#Insert POstUpvotes  in Profile Posts
+
+mutation postUpvote {
+  insert_Post_Upvotes(objects: {post_id: "", user_id: ""}) {
+    affected_rows
+  }
+  update_Posts(where: {post_id: {_eq: ""}}, _inc: {upvotes: "1"}) {
+    affected_rows
+  }
+}
+
+# New - Query 
+
+mutation insertPostUpvote {
+  insert_Post_Upvotes(objects: {post_id: "4", user_id: "2f1eb6a0-df51-4c4f-a7b8-ae2def2855aa"}) {
+    affected_rows
+  }
+}
+
+
+Changes:
+update_Posts {_inc :{upvotes:”1”}}: column not exist
+
+
+
+#...............31……………
+#Commnet Upvote in Profile
+
+mutation commentUpvote {
+  insert_Comment_Upvotes(objects: {comment_id: "", user_id: ""}) {
+    affected_rows
+  }
+  update_Comments(_inc: {upvotes: "1"}, where: {id: {_eq: ""}}) {
+    affected_rows
+  }
+}
+
+#New - query :
+
+
+mutation commentUpvote {
+  insert_Comments_Upvotes(objects: {comment_id: "", user_id: ""}) {
+    affected_rows
+  }
+  
+}
+
+
+Changes:
+insert_Comment_Upvotes -> insert_Comments_Upvotes
+update_Comments {_inc :{upvotes:”1”}}: column not exist
+
+
+
+#...............32……………
+#Get Comment Count
+
+query getCommentCount {
+  Comments_aggregate(where: {post_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+
+# New - Query :
+
+query getCommentCount {
+  Comments_aggregate(where: {post_id: {_eq: ""}}) {
+    aggregate {
+      count
+    }
+  }
+}
+
+No Changes
+
+
+#...................33…………….
+# addComment
+
+mutation addComment {
+  insert_Comments(objects: {content: "", post_id: "", upvotes: "", user_id: ""}) {
+    returning {
+      id
+      content
+    }
+  }
+  update_Posts(_inc: {no_of_comments: "1"}, where: {post_id: {_eq: ""}}) {
+    affected_rows
+    returning {
+      no_of_comments
+    }
+  }
+}
+
+
+# New - Query :
+
+
+mutation addComment {
+  insert_Comments(objects: {content: "", post_id: "", user_id: ""}) {
+    returning {
+      id
+      content
+    }
+  }
+}
+
+Changes:
+no_of_comments -> Removed
+upvotes -> Removed
+
+
+#.................34…………….
+#Delete events 
+
+mutation delete_Events {
+  delete_Events(where: {event_id: {_eq: ""}}) {
+    affected_rows
+  }
+}
+
+# New - query :
+
+mutation delete_Events {
+  delete_Events(where: {id: {_eq: ""}}) {
+    affected_rows
+  }
+}
+
+Changes:
+
+
+event_id -> id
+
+
+
+#................35…………………
+# Insert Community Member
+
+mutation updateCommunityMember {
+  update_Community(where: {community_id: {_eq: ""}}, _inc: {member_count: 1}) {
+    affected_rows
+  }
+  insert_Community_members(objects: {user_id: "", isAdmin: false, isMod: false, community_id: ""}) {
+    affected_rows
+  }
+}
+
+# New - Query :
+
+mutation updateCommunityMember {
+  insert_Community_members(objects: {user_id: "", isAdmin: false, isMod: false, community_id: ""}) {
+    affected_rows
+  }
+}
+
+
+Changes:
+member_count -> Removed
+
+
+
+
+#.................36…………..
+# Societies on the basis of categories
+
+query Categories {
+  Community(where: {category: {_eq: ""}}, limit: 10, offset: 10) {
+    pic_url
+    name
+    member_count
+    community_id
+    Community_members(where: {user_id: {_eq: ""}}) {
+      community_id
+    }
+  }
+}
+
+#New - Query :
+
+
+query Categories {
+  Community(where: {category_id: {_eq: ""}}, limit: 10, offset: 10) {
+    community_pic_url
+    name
+    id
+    Community_members(where: {user_id: {_eq: ""}}) {
+      community_id
+    }
+  }
+}
+
+Changes:
+
+category -> category_id
+pic_url -> community_pic_url
+community_id -> id
+
+
+
+
+#.....................37………………….
+# Comments
+
+query Comment {
+  Comments(where: {post_id: {_eq: ""}}, order_by: {timestamp: desc}, limit: 10, offset: 10) {
+    UserID {
+      user_id
+      name
+      pic_url
+    }
+    content
+    upvotes
+    user_id
+    id
+    timestamp
+    Comment_Upvotes(where: {user_id: {_eq: ""}}) {
+      user_id
+    }
+    Comment_Upvotes_aggregate {
+      aggregate {
+        count
+      }
+    }
+  }
+}
+
+# New - query ::
+
+query Comment {
+  Comments(where: {post_id: {_eq: ""}}, order_by: {created_at: desc}, limit: 10, offset: 10) {
+    User {
+      id
+      name
+      profile_pic_url
+    }
+    content
+    user_id
+    id
+    created_at
+    Comments_Upvotes(where: {user_id: {_eq: ""}}) {
+      user_id
+    }
+    Comments_Upvotes_aggregate {
+      aggregate {
+        count
+      }
+    }
+  }
+}
+
+Changes:
+UserID -> User
+UserID.user_id -> User.id
+UserID.pic_url -> User.profile_pic_url
+timestamp -> created_at
+Comment_Upvotes -> Comments_Upvotes
+Comment_Upvotes_aggregate -> Comments_Upvotes_aggregate
+
+
+
+#..................38………………
+# CommunityPosts
+
+query CommunityPosts {
+  Posts(where: {community_id: {_eq: ""}}, limit: 10, offset: 10, order_by: {created_at: desc}) {
+    post_id
+    community_id
+    content
+    created_at
+    created_by
+    name
+    pic_url
+    upvotes
+    no_of_comments
+    post_community{
+      name
+    }
+    post_to_user{
+      pic_url
+      user_id
+      name
+    }
+  }
+}
+
+# New - query :
+
+query CommunityPosts {
+  Posts(where: {community_id: {_eq: ""}}, limit: 10, offset: 10, order_by: {created_at: desc}) {
+    id
+    community_id
+    content
+    created_at
+    created_by
+    title
+    pic_url
+    video_url
+    Community{
+      name
+    }
+    User{
+      profile_pic_url
+      id
+      name
+    }
+  }
+}
+
+Changes:
+
+post_id -> id
+name -> title
+upvotes -> Removed
+no_of_comments -> Removed
+post_community -> Community
+post_to_user -> User
+post_to_user .pic_url-> User.profile_pic_url
+post_to_user.user_id -> User.id
+
+
+#....................39………………
+#Events
+
+query Events {
+  Events(offset: 10, limit: 10, where: {Event_to_community_members: {user_id: {_eq: ""}}}, order_by: {created_at: desc}) {
+    name
+    event_id
+    time
+    registration_fees
+    venue
+    venue_type
+    description
+    date
+    created_at
+    created_by
+    cover_pic
+    community_id
+    category
+    age_limit
+    additional_notes
+    Event_to_community{
+      community_id
+      name
+      pic_url
+    }
+  }
+}
+
+
+# New - Query :
+
+query Events {
+  Events(offset: 10, limit: 10, where: {Event_to_community_members: {user_id: {_eq: ""}}}, order_by: {created_at: desc}) {
+    name
+    id
+    time
+    registration_fees
+    venue
+    venue_type
+    description
+    date
+    created_at
+    created_by
+    cover_pic_url
+    community_id
+    category_id
+    age_limit
+    additional_notes
+    is_open
+    Community {
+      id
+      name
+      community_pic_url
+    }
+  }
+}
+
+Changes:
+
+event_id -> id
+cover_pic -> cover_pic_url
+category -> category_id
+is_open -> Added
+Event_to_community -> Community 
+Event_to_community.community_id -> Community.id
+Event_to_community.pic_url -> Community.community_pic_url
+
+
+#...............40……………….
+#getting list of community for admin only
+
+query CommunityMembers {
+  Community_members(where: {user_id: {_eq: ""}, _and: {isAdmin: {_eq: true}}}, limit: 10, offset: 10) {
+    community_to_member_relationship{
+      name
+      pic_url
+      member_count
+    }
+    id
     community_id
   }
 }
 
-//INSERT POST BY A USER
-mutation MyMutation {
-  insert_Posts(objects: [{name: "jm", created_by: "gh", pic_url: "r", community_id: "45", content: "th"}]) {
-    returning {
-      created_at
-      post_id
+
+#New - query :
+query CommunityMembers {
+  Community_members(where: {user_id: {_eq: ""}, _and: {isAdmin: {_eq: true}}}, limit: 10, offset: 10) {
+    Community{
+      name
+      community_pic_url
     }
+    id
+    community_id
   }
 }
 
-//INSERT EVENT USER
-mutation MyMutation {
-  insert_Events(objects: {name: "New Event 2", date: "04/05/2020", venue: "DTU", description: "Description", category: "Arts", registration_fees: "0.0", venue_type: "offline", created_by: "105", age_limit: 10, community_id: "200", cover_pic: "", time: "1:40 am", additional_notes: ""}) {
-    affected_rows
-    returning {
-      event_id
-      created_at
-      community_id
+Changes:
+community_to_member_relationship -> Community
+pic_url -> community_pic_url
+member_count -> Removed
+
+#.......................41………………
+# List of Communities in which I am a member
+
+
+query CommunityMembers {
+  Community_members(where: {user_id: {_eq: ""}, _and: [{isAdmin: {_eq: false}},{isMod:{_eq :false}}]}, limit: 10, offset: 10) {
+    community_to_member_relationship{
+      name
+      pic_url
+      member_count
     }
+    id
   }
 }
 
-//QUERY COMMUNITY TO MEMBER RELATION
-query MyQuery {
-  User(where: {user_id: {_eq: "978"}}) {
-    user_to_communities(where: {isAdmin: {_eq: true}}) {
-      isAdmin
-      isMod
+# New - Query :
+
+query CommunityMembers {
+  Community_members(where: {user_id: {_eq: ""}, _and: [{isAdmin: {_eq: false}},{isMod:{_eq :false}}]}, limit: 10, offset: 10) {
+    Community{
+      name
+      community_pic_url
+    }
+    id
+  }
+}
+
+Changes:
+community_to_member_relationship -> Community
+pic_url -> community_pic_url
+member_count -> Removed
+
+
+#...........................42………………….
+# Home Feed
+
+
+query Posts {
+  Posts(limit: 10, offset: 10, where: {_or: [{post_to_community_members: {user_id: {_eq: ""}}}, {post_to_followers: {userid_from: {_eq: ""}}}, {created_by: {_eq: ""}}]}, order_by: {created_at: desc}) {
+    community_id
+    content
+    created_at
+    created_by
+    name
+    no_of_comments
+    pic_url
+    post_community {
+      name
+    }
+    post_to_user {
+      pic_url
       user_id
-      upvotes
+      name
+    }
+    postUpvotesByPostId_aggregate {
+      aggregate {
+        count
+      }
+    }
+    postUpvotesByPostId(where: {user_id: {_eq: ""}}) {
+      user_id
+    }
+  }
+}
+
+
+# New - Query :
+
+query getHomePosts {
+  Posts(where: {_or: [{post_to_community_members: {user_id: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}}, {post_to_followers: {userid_from: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}}, {created_by: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}]}, order_by: {created_at: desc}) {
+    id
+    community_id
+    content
+    created_at
+    created_by
+    title
+    pic_ur
+    video_url
+    updated_at
+
+    Community {
+      name
+    }
+
+    Post_Upvotes_aggregate{
+      aggregate {
+        count(columns: id)
+      }
+    }
+
+    Post_Upvotes(where: {user_id: {_eq: "5ce7a048-db92-4928-b9b9-9d10780f27db"}}) {
+      user_id
+    }
+
+    User {
+      username
       id
-      community_id
-      community_to_members_relationship {
-        category
-        description
-        community_id
-        member_count
-        isOpen
-        name
-        pic_url
-      }
+      profile_pic_url
     }
   }
 }
 
-//QUERY FETCHING ONLY THE NAMES OF THE USER COMMUNITY TO MEMBER RELATION
-query MyQuery {
-  User(where: {user_id: {_eq: "978"}}) {
-    user_to_communities(where: {isAdmin: {_eq: true}}) {
-      community_to_members_relationship {
-        name
-      }
+
+Changes :
+
+post_id -> id
+upvotes-> REMOVED
+no_of_comments -> REMOVED
+post_to_community -> Community
+postUpvotesByPostId_aggregate ->  Post_Upvotes_aggregate
+postUpvotesByPostId -> Post_Upvotes
+post_to_user-> User
+updated_at  -> Added
+
+
+#..............43………
+# Manage Events
+
+query ManageEvents{
+  Events(where:{created_by:{_eq:""}} , order_by :{created_at :desc} , limit : 5 ,offset :5){
+    cover_pic
+    name
+    event_id
+    Event_to_community{
+      name
     }
   }
 }
 
-//__________________________________________________________________________________________________________________________________//
-  OTHER ENDPOINTS FOR RETROFIT
+query ManageEvents{
+  Events(where:{created_by:{_eq:""}} , order_by :{created_at :desc} , limit : 5 ,offset :5){
+    cover_pic_url
+    name
+    id
+    Community{
+      name
+    }
+  }
+}
 
-POST : api/v1/username -  to add Username to user
-POST: api/v1/username/search - To search the given username
 
-//__________________________________________________________________________________________________________________________________//
-SHARED PREFERENCE DATA
-1)Signup Activity Store: 
-  user_email
-  user_username
-  user_id
-  JWT
-  user_phone (NULL)
-  user_info_present (false)
 
-2)OTP Activity Store:
-  user_phone (phoneno)
 
-3)Info Activity Store:
-  user_info_present (true)
-  
-4)Home Activity Store:
-  if(logout)
-    login (false)
+Changes:
+cover_pic -> cover_pic_url
+event_id -> id
+community_to_member_relationship -> Community
 
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
